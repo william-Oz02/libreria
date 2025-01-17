@@ -1,0 +1,52 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import { SHOW_BUY_BUTTON } from "astro:env/server";
+import Amazon from "../../components/Amazon.astro"
+import BookScore from "../../components/BookScore.astro";
+import BuyButton from "../../components/BuyButton.astro";
+
+
+export async function getStaticPaths(){
+    const books = await getCollection("books");
+
+    return books.map((book) =>({
+        params: {id:book.slug},
+        props: {book}
+    }))
+} 
+
+
+const {book}= Astro.props
+const {data, slug}= book
+const {title, author, img, readtime, description, buy} = data
+
+//renderiza de manera asincrona el libro que es el que contiene toda la información, renderiza el texto del markwodn
+const {Content}= await render(book);
+
+export const prerender = true
+---
+
+<Layout>
+    <div class="flex gap-12">
+        <aside class="flex flex-col items-center gap-4">
+            <a href="/" class="hover:underline opacity-70">⬅ Volver atrás</a>
+            <img transition:name={`img-${slug}`} class="rounded w-64 h-auto" src={`/${img}`} alt={title}>
+            <!--server island, para que no sea estatico y se renderize en el servidor -->
+            <BookScore server:defer id={slug}>
+                <!--con el fallback, se renderiza primero el span y cuando carge el otro componente este lo reemplaza -->
+                <span slot="fallback" class="text-xs opacity-70"> Cargando Puntuación ... </span>
+            </BookScore>
+            {
+                SHOW_BUY_BUTTON && <BuyButton server:defer buy={buy}/>
+            }
+        </aside>
+        <main class="max-w-3xl">
+            <h1 transition:name={`title-${slug}`}  class="text-4xl font-bold mb-4">{title}</h1>
+            <div class="prose prose-invert">
+                <Content/>
+            </div>
+        </main>  
+    </div> 
+</Layout>
+
